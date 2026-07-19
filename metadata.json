@@ -1,0 +1,15 @@
+{
+  "name": "Kariflow",
+  "description": "The all-in-one platform for fashion designers and brands. Measurements, task tracking, and business automation in one place.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "history"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API",
+    "Measurement Management",
+    "Tailor Task Tracking",
+    "Order Lifecycle",
+    "Artisan Empowerment"
+}
