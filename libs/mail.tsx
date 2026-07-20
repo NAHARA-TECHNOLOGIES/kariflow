@@ -1,4 +1,4 @@
-import { resend } from "@/libs/resend";
+import { getResend } from "@/libs/resend";
 import WaitlistWelcome from "@/components/email/WaitlistWelcome";
 import TeamNotification from "@/components/email/TeamNotification";
 
@@ -12,16 +12,14 @@ export async function sendWaitlistWelcomeEmail({
   fullName: string;
   email: string;
 }) {
-  const response = await resend.emails.send({
+  const resend = getResend();
+
+  return resend.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: "🎉 Welcome to the Kariflow Waitlist",
     react: <WaitlistWelcome fullName={fullName} />,
   });
-
-  console.log("✅ Welcome Email Response:", response);
-
-  return response;
 }
 
 export async function sendWaitlistTeamNotification({
@@ -37,7 +35,9 @@ export async function sendWaitlistTeamNotification({
   country: string;
   state: string;
 }) {
-  const response = await resend.emails.send({
+  const resend = getResend();
+
+  return resend.emails.send({
     from: FROM_EMAIL,
     to: TEAM_EMAIL,
     subject: "🚀 New Waitlist Signup",
@@ -51,8 +51,4 @@ export async function sendWaitlistTeamNotification({
       />
     ),
   });
-
-  console.log("✅ Team Email Response:", response);
-
-  return response;
 }
