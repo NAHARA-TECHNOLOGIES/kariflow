@@ -2,7 +2,7 @@ import { resend } from "@/libs/resend";
 import WaitlistWelcome from "@/components/email/WaitlistWelcome";
 import TeamNotification from "@/components/email/TeamNotification";
 
-const FROM_EMAIL = "Kariflow <onboarding@resend.dev>";
+const FROM_EMAIL = "Kariflow <noreply@kariflow.com>";
 const TEAM_EMAIL = process.env.TEAM_EMAIL!;
 
 export async function sendWaitlistWelcomeEmail({
