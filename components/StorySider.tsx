@@ -3,26 +3,33 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import Image from 'next/image';
+import Image, { StaticImageData } from 'next/image';
 
-const SLIDES = [
+import kariflowBanner from "../public/assets/kariflow-banner.webp";
+
+interface Slide {
+  id: number;
+  title: string;
+  description: string;
+  image: string | StaticImageData; // Supports both remote URLs and local imports
+}
+
+const SLIDES: Slide[] = [
   {
     id: 1,
     title: "From Sketch to Reality",
     description: "Every great masterpiece begins with a single line. Kariflow honors the artistic process by providing the structure needed to turn vision into tangible elegance.",
-    image: "https://images.unsplash.com/photo-1620912189865-1e8a33da4c5e?auto=format&fit=crop&q=80&w=2000",
+    image: "https://images.unsplash.com/photo-1620912189865-1e8a33da4c5e?auto=format&fit=crop&q=80&w=2000", 
   },
   {
     id: 2,
     title: "Precision in Every Stitch",
-    // 🎯 FIXED: Escaped native single quote to prevent Next compiler breakages
     description: "The fashion artisan's world is one of detailed measurements and meticulous craft. We've built tools that respect that precision, ensuring nothing is lost in translation.",
     image: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&q=80&w=2000",
   },
   {
     id: 3,
     title: "Digital Craftsmanship",
-    // 🎯 FIXED: Escaped native single quote here as well
     description: "Technology shouldn't get in the way of your art. It should amplify it. Kariflow is the invisible hand that manages your business while you focus on the needle.",
     image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&q=80&w=2000",
   },
@@ -30,7 +37,8 @@ const SLIDES = [
     id: 4,
     title: "Empowering Global Artisans",
     description: "Our mission is to give every local tailor the power of a global enterprise. We're building the future where every shop, everywhere, can scale with clarity.",
-    image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=2000",
+    // 🎯 UPDATED: Swapped remote URL out for the static local import configuration
+    image: kariflowBanner,
   }
 ];
 
@@ -97,12 +105,11 @@ export default function StorySlider() {
               }}
               className="absolute inset-0"
             >
-              {/* 🎯 FIXED: Replaced standard HTML img with Next.js specific Image layout module component */}
               <Image
                 src={SLIDES[index].image}
                 alt={SLIDES[index].title}
                 fill
-                sizes="(max-w-1280px) 100vw, 1280px"
+                sizes="(max-width: 1280px) 100vw, 1280px"
                 className="object-cover opacity-60"
                 priority
               />
