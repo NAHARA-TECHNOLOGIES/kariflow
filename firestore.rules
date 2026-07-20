@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) ||
+        request.auth.token.email == "chinemeremsmart81@gmail.com"
+      );
+    }
+
+    function isMasterAdmin() {
+      return isSignedIn() && request.auth.token.email == "chinemeremsmart81@gmail.com";
+    }
+
+    // --- Validation Helpers ---
+    
+    function isValidWaitlistEntry(data) {
+      return data.keys().hasAll(['fullName', 'email', 'businessType', 'submittedAt', 'country', 'state'])
+        && (data.keys().hasAny(['ip']) ? data.keys().size() <= 7 : data.keys().size() == 6)
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 150
+        && data.businessType in ['designer', 'tailor', 'brand']
+        && data.country is string && data.country.size() <= 100
+        && data.state is string && data.state.size() <= 100
+        && (data.keys().hasAny(['ip']) ? data.ip is string && data.ip.size() <= 64 : true)
+        && data.submittedAt == request.time;
+    }
+
+    function isValidBlogPost(data) {
+      return data.keys().hasAll(['title', 'slug', 'content', 'author', 'publishedAt'])
+        && data.title is string && data.title.size() <= 256
+        && data.slug is string && data.slug.size() <= 256
+        && data.content is string && data.content.size() <= 500000
+        && data.author is string && data.author.size() <= 128
+        && (data.publishedAt == request.time || data.publishedAt is timestamp)
+        && (data.get('views', 0) is number)
+        && (data.keys().hasAny(['updatedAt']) ? data.updatedAt == request.time : true);
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'slug', 'createdAt'])
+        && data.name is string && data.name.size() <= 100
+        && data.slug is string && data.slug.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    function isValidNewsletterSubscriber(data) {
+      return data.keys().hasAll(['email', 'frequency', 'subscribedAt'])
+        && data.email is string && data.email.size() <= 150
+        && data.frequency in ['daily', 'weekly']
+        && data.subscribedAt == request.time;
+    }
+
+    function isValidLegalPage(data) {
+      return data.keys().hasAll(['title', 'content', 'lastRevised', 'updatedAt'])
+        && data.title is string && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 500000
+        && data.lastRevised is string && data.lastRevised.size() <= 64
+        && data.updatedAt == request.time;
+    }
+
+    function isValidBrandingSettings(data) {
+      return data.keys().hasAll(['logoMode', 'cropType', 'cropIndex'])
+        && data.logoMode in ['crop', 'whole']
+        && data.cropType in ['horizontal', 'vertical']
+        && data.cropIndex is number
+        && (data.keys().hasAny(['customBrandWidth']) ? data.customBrandWidth is string && data.customBrandWidth.size() <= 64 : true)
+        && (data.keys().hasAny(['customBrandHeight']) ? data.customBrandHeight is string && data.customBrandHeight.size() <= 64 : true);
+    }
+
+    function isValidEmailTemplateSettings(data) {
+      return data.keys().hasAll(['theme', 'headerText', 'subtitleText', 'introGreeting', 'introBody', 'footerAddress', 'footerSocials', 'footerSignature', 'includeFooter'])
+        && data.theme in ['modern', 'emerald', 'artisanal']
+        && data.headerText is string && data.headerText.size() <= 200
+        && data.subtitleText is string && data.subtitleText.size() <= 200
+        && data.introGreeting is string && data.introGreeting.size() <= 100
+        && data.introBody is string && data.introBody.size() <= 5000
+        && data.footerAddress is string && data.footerAddress.size() <= 300
+        && data.footerSignature is string && data.footerSignature.size() <= 100
+        && data.includeFooter is bool
+        && data.footerSocials is map
+        && data.footerSocials.keys().hasAll(['twitter', 'linkedin', 'instagram'])
+        && data.footerSocials.twitter is string && data.footerSocials.twitter.size() <= 256
+        && data.footerSocials.linkedin is string && data.footerSocials.linkedin.size() <= 256
+        && data.footerSocials.instagram is string && data.footerSocials.instagram.size() <= 256;
+    }
+
+    // --- Match Rules ---
+
+    match /waitlist/{entryId} {
+      allow create: if isValidWaitlistEntry(incoming()) && isValidId(entryId);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /cookieConsents/{consentId} {
+      allow create: if isValidId(consentId) && incoming().keys().hasAll(['preferences', 'timestamp']);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /blogPosts/{postId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidBlogPost(incoming()) && isValidId(postId);
+      allow update: if (isAdmin() && isValidBlogPost(incoming()))
+                    || (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+                      && incoming().views == existing().views + 1
+                    );
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidCategory(incoming()) && isValidId(categoryId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && (request.auth.uid == adminId || request.auth.token.email == adminId || isMasterAdmin());
+      allow write: if isMasterAdmin();
+    }
+
+    match /newsletterSubscribers/{emailId} {
+      allow get, list: if true;
+      allow create: if isValidNewsletterSubscriber(incoming()) && emailId == incoming().email.lower();
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
+    match /legalPages/{pageId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /constants/{constantId} {
+      allow read: if true;
+      allow write: if isAdmin() && (
+        constantId == 'branding' ? isValidBrandingSettings(incoming()) : (
+          constantId == 'emailTemplate' ? isValidEmailTemplateSettings(incoming()) : false
+        )
+      );
+    }
+
+    match /inquiries/{inquiryId} {
+      allow create: if true; 
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /public_test/{docId} {
+      allow read, write: if true;
+    }
+
+    // --- Global Safety Net ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

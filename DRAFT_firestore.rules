@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // 1. Waitlist Validation
+    function isValidWaitlistEntry(data) {
+      return data.keys().hasAll(['fullName', 'email', 'businessType', 'submittedAt'])
+        && data.keys().size() == 4
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 150
+        && data.businessType in ['designer', 'tailor', 'brand']
+        && data.submittedAt is number;
+    }
+
+    match /waitlist/{entryId} {
+      allow create: if isValidWaitlistEntry(incoming()) && entryId.size() <= 128;
+      // No reading, updating or deleting from the public client
+      allow read, update, delete: if false;
+    }
+  }
+}
